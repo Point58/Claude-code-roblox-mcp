@@ -30,6 +30,8 @@ jobs:
         run: |
           mkdir -p ../app/resources
           bun build --compile --target=bun-windows-x64 --minify ./src/index.ts --outfile ../app/resources/claude-roblox-mcp.exe
+          cp ../plugin-bundled/ClaudeBridge.server.luau ../app/resources/ClaudeBridge.lua
+          ls -la ../app/resources/
 
       - name: Install app deps
         working-directory: app
@@ -39,6 +41,7 @@ jobs:
         working-directory: app
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEBUG: electron-builder
         run: npx electron-builder --win --x64 --publish never
 
       - name: Upload to GitHub Release
