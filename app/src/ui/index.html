@@ -10,8 +10,14 @@
   <main class="shell">
     <header class="topbar">
       <div class="brand">
-        <span class="brand-dot"></span>
-        <span class="brand-name">Claude <span class="brand-x">×</span> Roblox</span>
+        <span class="brand-mark">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 2 4 6v6c0 5 3.5 9 8 10 4.5-1 8-5 8-10V6l-8-4Z"/>
+          </svg>
+        </span>
+        <span class="brand-name">Claude Roblox Bridge</span>
+        <span class="brand-sep">/</span>
+        <span class="brand-sub">Setup</span>
       </div>
       <nav class="tabs">
         <button class="tab active" data-tab="dashboard">Dashboard</button>
@@ -21,84 +27,157 @@
     </header>
 
     <section class="panel" data-panel="dashboard">
-      <div class="hero">
-        <h1>Code your Roblox game with Claude.</h1>
-        <p>Install once. Open Studio. Open Claude Code. Talk.</p>
+      <div class="page-head">
+        <h1>Get started</h1>
+        <p class="muted">Finish the 3 steps below. Claude Code takes over once Studio connects.</p>
       </div>
 
-      <div class="cards">
-        <article class="card" id="card-plugin">
-          <div class="card-head">
-            <span class="dot pending" id="dot-plugin"></span>
-            <h2>Studio plugin</h2>
+      <div class="progress-card">
+        <div class="progress-row">
+          <div class="progress-text">
+            <span class="progress-label">Setup progress</span>
+            <span class="progress-count"><b id="progress-count">0</b><span class="muted"> / 3 steps complete</span></span>
           </div>
-          <p class="card-body" id="body-plugin">Checking…</p>
-          <div class="card-actions">
-            <button class="btn primary" id="btn-install-plugin">Install plugin</button>
-            <button class="btn ghost" id="btn-open-plugins">Open Plugins folder</button>
-          </div>
-        </article>
+          <span class="badge" id="progress-badge">Checking…</span>
+        </div>
+        <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+        <p class="next-hint" id="next-hint">Checking your setup…</p>
+      </div>
 
-        <article class="card" id="card-mcp">
-          <div class="card-head">
-            <span class="dot pending" id="dot-mcp"></span>
-            <h2>Claude Code MCP</h2>
+      <ol class="steps">
+        <li class="step" id="step-plugin" data-step="1">
+          <div class="step-marker">
+            <span class="step-num">1</span>
+            <span class="step-check" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            </span>
           </div>
-          <p class="card-body" id="body-mcp">Checking…</p>
-          <div class="card-actions">
-            <button class="btn primary" id="btn-register-mcp">Register with Claude Code</button>
-            <button class="btn ghost" id="btn-open-config">Open ~/.claude.json</button>
+          <div class="step-body">
+            <div class="step-head">
+              <h2 class="step-title">Install the Studio plugin</h2>
+              <span class="badge" id="badge-plugin">Checking…</span>
+            </div>
+            <p class="step-desc" id="body-plugin">
+              Drops <code>ClaudeBridge.lua</code> into your Roblox Plugins folder, with the bridge token already embedded.
+            </p>
+            <div class="step-actions">
+              <button class="btn primary" id="btn-install-plugin">Install plugin</button>
+              <button class="btn outline" id="btn-open-plugins">Open Plugins folder</button>
+            </div>
           </div>
-        </article>
+        </li>
 
-        <article class="card" id="card-server">
-          <div class="card-head">
+        <li class="step" id="step-mcp" data-step="2">
+          <div class="step-marker">
+            <span class="step-num">2</span>
+            <span class="step-check" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            </span>
+          </div>
+          <div class="step-body">
+            <div class="step-head">
+              <h2 class="step-title">Register with Claude Code</h2>
+              <span class="badge" id="badge-mcp">Checking…</span>
+            </div>
+            <p class="step-desc" id="body-mcp">
+              Adds this bridge as an MCP server in <code>~/.claude.json</code> so Claude Code can call the Roblox tools.
+            </p>
+            <div class="step-actions">
+              <button class="btn primary" id="btn-register-mcp">Register with Claude Code</button>
+              <button class="btn outline" id="btn-open-config">Open ~/.claude.json</button>
+            </div>
+          </div>
+        </li>
+
+        <li class="step" id="step-studio" data-step="3">
+          <div class="step-marker">
+            <span class="step-num">3</span>
+            <span class="step-check" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            </span>
+          </div>
+          <div class="step-body">
+            <div class="step-head">
+              <h2 class="step-title">Connect from Roblox Studio</h2>
+              <span class="badge" id="badge-studio">Waiting</span>
+            </div>
+            <p class="step-desc">
+              Open Roblox Studio &rarr; any place &rarr; <b>Plugins</b> tab &rarr; <b>Claude Bridge</b> toolbar &rarr; click <b>Connect</b>.
+              The plugin will start polling the bridge.
+            </p>
+            <div class="step-actions">
+              <span class="muted small">No button here — this happens inside Studio.</span>
+            </div>
+          </div>
+        </li>
+      </ol>
+
+      <div class="ready-card hidden" id="ready-card">
+        <div class="ready-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <div>
+          <h3>You're set up. Talk to Claude Code.</h3>
+          <p class="muted">Open a terminal, run <code>claude</code>, and try something like:</p>
+          <pre class="example">Build me a HUD with a health bar in the top-left</pre>
+        </div>
+      </div>
+
+      <details class="diagnostics">
+        <summary>
+          <span>Diagnostics</span>
+          <span class="muted small">Bridge server status — Claude Code starts this on demand</span>
+        </summary>
+        <div class="diag-card" id="card-server">
+          <div class="diag-head">
             <span class="dot pending" id="dot-server"></span>
-            <h2>Bridge server</h2>
+            <h3>Bridge server</h3>
+            <span class="badge" id="badge-server">Checking…</span>
           </div>
-          <p class="card-body" id="body-server">Checking…</p>
-          <div class="card-actions">
-            <button class="btn primary" id="btn-toggle-server">Start server</button>
+          <p class="diag-body" id="body-server">Checking…</p>
+          <div class="diag-actions">
+            <button class="btn outline" id="btn-toggle-server">Start server</button>
           </div>
-        </article>
-      </div>
-
-      <footer class="hero-footer">
-        <p class="hint">
-          Once all three lights are green, open Roblox Studio, click <b>Connect</b> in the Claude Bridge toolbar, then talk to Claude Code.
-        </p>
-      </footer>
+        </div>
+      </details>
     </section>
 
     <section class="panel hidden" data-panel="settings">
-      <h2 class="section-title">Settings</h2>
+      <div class="page-head">
+        <h1>Settings</h1>
+        <p class="muted">Shared secrets and paths the bridge uses. Regenerating the token reinstalls the plugin.</p>
+      </div>
 
       <div class="field">
         <label>Shared token</label>
         <div class="row">
           <input id="input-token" readonly />
-          <button class="btn ghost" id="btn-copy-token">Copy</button>
-          <button class="btn ghost danger" id="btn-regenerate-token">Regenerate</button>
+          <button class="btn outline" id="btn-copy-token">Copy</button>
+          <button class="btn destructive" id="btn-regenerate-token">Regenerate</button>
         </div>
-        <p class="hint">Same token is embedded in the plugin and used by the MCP server. Regenerating reinstalls the plugin.</p>
+        <p class="hint">The same token is embedded in the plugin and used by the MCP server. Regenerating updates all three places.</p>
       </div>
 
       <div class="field">
         <label>Bridge port</label>
         <div class="row"><input id="input-port" readonly /></div>
-        <p class="hint">HTTP port the Studio plugin polls. Default 31416.</p>
+        <p class="hint">HTTP port the Studio plugin polls. Default <code>31416</code>. Bound to <code>127.0.0.1</code> only.</p>
       </div>
 
       <div class="field">
         <label>Plugin location</label>
         <div class="row"><input id="input-plugins" readonly /></div>
+        <p class="hint">Folder where <code>ClaudeBridge.lua</code> is installed.</p>
       </div>
     </section>
 
     <section class="panel hidden" data-panel="logs">
-      <div class="row spread">
-        <h2 class="section-title">Server logs</h2>
-        <button class="btn ghost" id="btn-clear-logs">Clear</button>
+      <div class="page-head row spread">
+        <div>
+          <h1>Server logs</h1>
+          <p class="muted">Live stdout/stderr from the bridge server process.</p>
+        </div>
+        <button class="btn outline" id="btn-clear-logs">Clear</button>
       </div>
       <pre id="log-view" class="logs"></pre>
     </section>

@@ -12,7 +12,7 @@
 
   if (!api) {
     document.body.innerHTML = `
-      <div style="padding:40px;font-family:sans-serif;color:#f87171;">
+      <div style="padding:40px;font-family:sans-serif;color:#ef4444;">
         <h1>Preload script failed to load</h1>
         <p>window.bridge is undefined — IPC layer is missing.</p>
         <p>Open DevTools (Ctrl+Shift+I) and check the Console tab for the root cause.</p>
@@ -20,9 +20,23 @@
     throw new Error("preload not loaded");
   }
 
+  function setBadge(el, kind, text) {
+    if (!el) return;
+    el.classList.remove("success", "warning", "danger", "info", "pending");
+    if (kind) el.classList.add(kind);
+    if (text != null) el.textContent = text;
+  }
+
   function setDot(el, kind) {
+    if (!el) return;
     el.classList.remove("good", "bad", "warn", "pending");
     el.classList.add(kind);
+  }
+
+  function setStepState(stepEl, state) {
+    if (!stepEl) return;
+    stepEl.classList.remove("done", "current", "todo");
+    stepEl.classList.add(state);
   }
 
   function setTabs() {
@@ -39,57 +53,137 @@
   }
 
   function renderPlugin(state) {
-    const dot = $("dot-plugin");
     const body = $("body-plugin");
     const btn = $("btn-install-plugin");
+    const badge = $("badge-plugin");
     if (state.status.plugin) {
-      setDot(dot, "good");
-      body.textContent = `Installed at ${state.pluginPath}.`;
+      setBadge(badge, "success", "Installed");
+      body.innerHTML = `Plugin file is at <code>${state.pluginPath}</code>. Token already embedded.`;
       btn.textContent = "Reinstall plugin";
-    } else {
-      setDot(dot, "bad");
-      body.textContent = "Plugin not detected in your Roblox Plugins folder.";
-      btn.textContent = "Install plugin";
+      return true;
     }
+    setBadge(badge, "danger", "Not installed");
+    body.innerHTML = `Drops <code>ClaudeBridge.lua</code> into your Roblox Plugins folder, with the bridge token already embedded.`;
+    btn.textContent = "Install plugin";
+    return false;
   }
 
   function renderMcp(state) {
-    const dot = $("dot-mcp");
     const body = $("body-mcp");
+    const badge = $("badge-mcp");
+    const btn = $("btn-register-mcp");
     if (state.status.mcp) {
-      setDot(dot, "good");
-      body.textContent = "Registered. Claude Code will spawn the server on launch.";
-    } else {
-      setDot(dot, "bad");
-      body.textContent = "Not registered. Claude Code can't see the Roblox tools yet.";
+      setBadge(badge, "success", "Registered");
+      body.innerHTML = `Claude Code can call the Roblox tools. Entry is in <code>~/.claude.json</code> and the server will be spawned on demand.`;
+      btn.textContent = "Re-register";
+      return true;
     }
+    setBadge(badge, "danger", "Not registered");
+    body.innerHTML = `Adds this bridge as an MCP server in <code>~/.claude.json</code> so Claude Code can call the Roblox tools.`;
+    btn.textContent = "Register with Claude Code";
+    return false;
   }
 
   function renderServer(state) {
     const dot = $("dot-server");
     const body = $("body-server");
     const btn = $("btn-toggle-server");
+    const badge = $("badge-server");
     const s = state.status.server;
     if (s === "running") {
       setDot(dot, "good");
-      body.textContent = `Listening on http://127.0.0.1:${state.port}.`;
+      setBadge(badge, "success", "Running");
+      body.innerHTML = `Listening on <code>http://127.0.0.1:${state.port}</code>.`;
       btn.textContent = "Stop server";
       btn.dataset.action = "stop";
-    } else if (s === "unauthorized") {
+      return "running";
+    }
+    if (s === "unauthorized") {
       setDot(dot, "warn");
-      body.textContent = "Server running but token mismatch. Try regenerating the token.";
+      setBadge(badge, "warning", "Token mismatch");
+      body.innerHTML = `A bridge is running on port ${state.port} but uses a different token. Regenerate the token in <b>Settings</b> to fix it.`;
       btn.textContent = "Start server";
       btn.dataset.action = "start";
-    } else if (s === "unreachable") {
-      setDot(dot, "bad");
-      body.textContent = "Not running. Claude Code will start it automatically when you open a session.";
+      return "warn";
+    }
+    if (s === "unreachable") {
+      setDot(dot, "pending");
+      setBadge(badge, "info", "Idle");
+      body.innerHTML = `Not running. Claude Code will start it automatically when you open a session — you can also start it here to test.`;
       btn.textContent = "Start server";
       btn.dataset.action = "start";
+      return "idle";
+    }
+    setDot(dot, "warn");
+    setBadge(badge, "warning", "Unknown");
+    body.textContent = s;
+    btn.textContent = "Start server";
+    btn.dataset.action = "start";
+    return "warn";
+  }
+
+  function renderStepper(pluginDone, mcpDone) {
+    const stepPlugin = $("step-plugin");
+    const stepMcp = $("step-mcp");
+    const stepStudio = $("step-studio");
+    const studioBadge = $("badge-studio");
+
+    if (pluginDone) {
+      setStepState(stepPlugin, "done");
     } else {
-      setDot(dot, "warn");
-      body.textContent = s;
-      btn.textContent = "Start server";
-      btn.dataset.action = "start";
+      setStepState(stepPlugin, "current");
+    }
+
+    if (mcpDone) {
+      setStepState(stepMcp, "done");
+    } else if (pluginDone) {
+      setStepState(stepMcp, "current");
+    } else {
+      setStepState(stepMcp, "todo");
+    }
+
+    if (pluginDone && mcpDone) {
+      setStepState(stepStudio, "current");
+      setBadge(studioBadge, "info", "Do this next");
+    } else {
+      setStepState(stepStudio, "todo");
+      setBadge(studioBadge, "pending", "Waiting");
+    }
+  }
+
+  function renderProgress(pluginDone, mcpDone, serverState) {
+    const done = (pluginDone ? 1 : 0) + (mcpDone ? 1 : 0);
+    // Step 3 (Studio connect) we can't auto-detect — closest proxy is the
+    // server being "running" (plugin actively polling would keep it busy, but
+    // even idle bridge counts as healthy for setup purposes). We don't mark
+    // it as automatically complete; user knows they did it when Claude works.
+    const total = 3;
+    const fill = $("progress-fill");
+    if (fill) fill.style.width = `${(done / total) * 100}%`;
+    $("progress-count").textContent = String(done);
+
+    const badge = $("progress-badge");
+    if (done === 0) {
+      setBadge(badge, "danger", "Action required");
+    } else if (done < 2) {
+      setBadge(badge, "warning", "In progress");
+    } else if (done === 2) {
+      setBadge(badge, "info", "Almost there");
+    } else {
+      setBadge(badge, "success", "Ready");
+    }
+
+    const hint = $("next-hint");
+    const ready = $("ready-card");
+    if (!pluginDone) {
+      hint.innerHTML = `<b>Next:</b> install the Studio plugin so Roblox Studio can talk to the bridge.`;
+      if (ready) ready.classList.add("hidden");
+    } else if (!mcpDone) {
+      hint.innerHTML = `<b>Next:</b> register the bridge with Claude Code so the Roblox tools become available.`;
+      if (ready) ready.classList.add("hidden");
+    } else {
+      hint.innerHTML = `<b>Final step:</b> open Roblox Studio and click <b>Connect</b> in the Claude Bridge toolbar.`;
+      if (ready) ready.classList.remove("hidden");
     }
   }
 
@@ -110,9 +204,11 @@
   async function refresh() {
     try {
       const state = await api.getState();
-      renderPlugin(state);
-      renderMcp(state);
+      const pluginDone = renderPlugin(state);
+      const mcpDone = renderMcp(state);
       renderServer(state);
+      renderStepper(pluginDone, mcpDone);
+      renderProgress(pluginDone, mcpDone, state.status.server);
       renderSettings(state);
       return state;
     } catch (err) {
@@ -156,8 +252,12 @@
       });
     });
 
-    $("btn-copy-token").addEventListener("click", () => {
+    $("btn-copy-token").addEventListener("click", (e) => {
       navigator.clipboard.writeText($("input-token").value);
+      const b = e.currentTarget;
+      const orig = b.textContent;
+      b.textContent = "Copied";
+      setTimeout(() => { b.textContent = orig; }, 1200);
     });
     $("btn-regenerate-token").addEventListener("click", async (e) => {
       if (!confirm("Regenerate token? This reinstalls the plugin and updates Claude Code config.")) return;
