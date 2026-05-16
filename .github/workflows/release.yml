@@ -26,6 +26,7 @@ jobs:
 
       - name: Compile server to standalone exe
         working-directory: server
+        shell: bash
         run: |
           mkdir -p ../app/resources
           bun build --compile --target=bun-windows-x64 --minify ./src/index.ts --outfile ../app/resources/claude-roblox-mcp.exe
