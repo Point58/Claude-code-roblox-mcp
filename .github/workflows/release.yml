@@ -1,0 +1,50 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install server deps
+        working-directory: server
+        run: bun install
+
+      - name: Compile server to standalone exe
+        working-directory: server
+        run: |
+          mkdir -p ../app/resources
+          bun build --compile --target=bun-windows-x64 --minify ./src/index.ts --outfile ../app/resources/claude-roblox-mcp.exe
+
+      - name: Install app deps
+        working-directory: app
+        run: npm install
+
+      - name: Build installer
+        working-directory: app
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx electron-builder --win --x64 --publish never
+
+      - name: Upload to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: app/release/*Setup*.exe
+          draft: false
+          prerelease: false
+          generate_release_notes: true

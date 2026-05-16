@@ -1,0 +1,57 @@
+{
+  "name": "claude-roblox-bridge",
+  "productName": "Claude Roblox Bridge",
+  "version": "0.1.0",
+  "description": "Desktop manager for the Claude Code <-> Roblox Studio bridge",
+  "main": "src/main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "build:server-exe": "cd ../server && bun build --compile --target=bun-windows-x64 ./src/index.ts --outfile ../app/resources/claude-roblox-mcp.exe",
+    "pack": "electron-builder --win --x64 --dir",
+    "dist": "electron-builder --win --x64"
+  },
+  "build": {
+    "appId": "dev.szawel.claude-roblox-bridge",
+    "productName": "Claude Roblox Bridge",
+    "directories": {
+      "output": "release",
+      "buildResources": "assets"
+    },
+    "files": [
+      "src/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "resources",
+        "to": "."
+      },
+      {
+        "from": "../plugin-bundled/ClaudeBridge.server.luau",
+        "to": "ClaudeBridge.lua"
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ],
+      "artifactName": "${productName}-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Claude Roblox Bridge"
+    }
+  },
+  "devDependencies": {
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8"
+  }
+}

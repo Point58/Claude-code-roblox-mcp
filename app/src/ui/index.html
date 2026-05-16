@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Claude Roblox Bridge</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-dot"></span>
+        <span class="brand-name">Claude <span class="brand-x">×</span> Roblox</span>
+      </div>
+      <nav class="tabs">
+        <button class="tab active" data-tab="dashboard">Dashboard</button>
+        <button class="tab" data-tab="settings">Settings</button>
+        <button class="tab" data-tab="logs">Logs</button>
+      </nav>
+    </header>
+
+    <section class="panel" data-panel="dashboard">
+      <div class="hero">
+        <h1>Code your Roblox game with Claude.</h1>
+        <p>Install once. Open Studio. Open Claude Code. Talk.</p>
+      </div>
+
+      <div class="cards">
+        <article class="card" id="card-plugin">
+          <div class="card-head">
+            <span class="dot pending" id="dot-plugin"></span>
+            <h2>Studio plugin</h2>
+          </div>
+          <p class="card-body" id="body-plugin">Checking…</p>
+          <div class="card-actions">
+            <button class="btn primary" id="btn-install-plugin">Install plugin</button>
+            <button class="btn ghost" id="btn-open-plugins">Open Plugins folder</button>
+          </div>
+        </article>
+
+        <article class="card" id="card-mcp">
+          <div class="card-head">
+            <span class="dot pending" id="dot-mcp"></span>
+            <h2>Claude Code MCP</h2>
+          </div>
+          <p class="card-body" id="body-mcp">Checking…</p>
+          <div class="card-actions">
+            <button class="btn primary" id="btn-register-mcp">Register with Claude Code</button>
+            <button class="btn ghost" id="btn-open-config">Open ~/.claude.json</button>
+          </div>
+        </article>
+
+        <article class="card" id="card-server">
+          <div class="card-head">
+            <span class="dot pending" id="dot-server"></span>
+            <h2>Bridge server</h2>
+          </div>
+          <p class="card-body" id="body-server">Checking…</p>
+          <div class="card-actions">
+            <button class="btn primary" id="btn-toggle-server">Start server</button>
+          </div>
+        </article>
+      </div>
+
+      <footer class="hero-footer">
+        <p class="hint">
+          Once all three lights are green, open Roblox Studio, click <b>Connect</b> in the Claude Bridge toolbar, then talk to Claude Code.
+        </p>
+      </footer>
+    </section>
+
+    <section class="panel hidden" data-panel="settings">
+      <h2 class="section-title">Settings</h2>
+
+      <div class="field">
+        <label>Shared token</label>
+        <div class="row">
+          <input id="input-token" readonly />
+          <button class="btn ghost" id="btn-copy-token">Copy</button>
+          <button class="btn ghost danger" id="btn-regenerate-token">Regenerate</button>
+        </div>
+        <p class="hint">Same token is embedded in the plugin and used by the MCP server. Regenerating reinstalls the plugin.</p>
+      </div>
+
+      <div class="field">
+        <label>Bridge port</label>
+        <div class="row"><input id="input-port" readonly /></div>
+        <p class="hint">HTTP port the Studio plugin polls. Default 31416.</p>
+      </div>
+
+      <div class="field">
+        <label>Plugin location</label>
+        <div class="row"><input id="input-plugins" readonly /></div>
+      </div>
+    </section>
+
+    <section class="panel hidden" data-panel="logs">
+      <div class="row spread">
+        <h2 class="section-title">Server logs</h2>
+        <button class="btn ghost" id="btn-clear-logs">Clear</button>
+      </div>
+      <pre id="log-view" class="logs"></pre>
+    </section>
+  </main>
+
+  <script src="./renderer.js"></script>
+</body>
+</html>
