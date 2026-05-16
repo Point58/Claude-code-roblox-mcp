@@ -2,6 +2,8 @@
 
 const { contextBridge, ipcRenderer } = require("electron");
 
+console.log("[preload] starting");
+
 contextBridge.exposeInMainWorld("bridge", {
   getState: () => ipcRenderer.invoke("get-state"),
   installPlugin: () => ipcRenderer.invoke("install-plugin"),
@@ -24,3 +26,5 @@ contextBridge.exposeInMainWorld("bridge", {
     return () => ipcRenderer.removeListener("server-exit", fn);
   },
 });
+
+console.log("[preload] bridge exposed");

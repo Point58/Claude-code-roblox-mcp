@@ -1,7 +1,19 @@
 "use strict";
 
+console.log("[renderer] starting, bridge=", typeof window.bridge);
+
 const $ = (id) => document.getElementById(id);
 const bridge = window.bridge;
+
+if (!bridge) {
+  document.body.innerHTML = `
+    <div style="padding:40px;font-family:sans-serif;color:#f87171;">
+      <h1>Preload script failed to load</h1>
+      <p>window.bridge is undefined — IPC layer is missing.</p>
+      <p>Open DevTools (Ctrl+Shift+I) and check the Console tab for the root cause.</p>
+    </div>`;
+  throw new Error("preload not loaded");
+}
 
 function setDot(el, kind) {
   el.classList.remove("good", "bad", "warn", "pending");

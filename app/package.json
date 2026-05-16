@@ -1,7 +1,7 @@
 {
   "name": "claude-roblox-bridge",
   "productName": "Claude Roblox Bridge",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Desktop manager for the Claude Code <-> Roblox Studio bridge",
   "main": "src/main.js",
   "private": true,

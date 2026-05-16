@@ -29,6 +29,9 @@ function createWindow() {
   });
   mainWindow.loadFile(path.join(__dirname, "ui", "index.html"));
   mainWindow.on("closed", () => { mainWindow = null; });
+  // DevTools open on startup so users can see console errors during early
+  // versions. Remove when the app stabilizes.
+  mainWindow.webContents.openDevTools({ mode: "detach" });
 }
 
 serverProcess.onEvent((event, payload) => {
