@@ -1,10 +1,14 @@
 {
   "name": "claude-roblox-bridge",
   "productName": "Claude Roblox Bridge",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Desktop manager for the Claude Code <-> Roblox Studio bridge",
   "main": "src/main.js",
   "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Point58/Claude-code-roblox-mcp.git"
+  },
   "scripts": {
     "start": "electron .",
     "build:server-exe": "cd ../server && bun build --compile --target=bun-windows-x64 ./src/index.ts --outfile ../app/resources/claude-roblox-mcp.exe",
@@ -14,6 +18,7 @@
   "build": {
     "appId": "dev.szawel.claude-roblox-bridge",
     "productName": "Claude Roblox Bridge",
+    "publish": null,
     "directories": {
       "output": "release",
       "buildResources": "assets"
