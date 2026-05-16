@@ -31,14 +31,32 @@ That's it. Claude Code calls the Roblox tools automatically — you never pick t
 
 ## What Claude can do
 
+### Read
 | Tool                  | What it does                                                                 |
 | --------------------- | ---------------------------------------------------------------------------- |
 | `roblox_inspect`      | Walk DataModel from a path, return tree (names, classes, optional properties)|
-| `roblox_run_code`     | Execute Luau in Studio and capture Output + return value                     |
-| `roblox_edit_script`  | Replace the `Source` of a Script / LocalScript / ModuleScript                |
-| `roblox_make_gui`     | Build a GUI tree (ScreenGui, Frames, TextLabels, ...) under e.g. StarterGui  |
+| `roblox_search`       | Find Instances by name pattern and/or class under a root                     |
+| `roblox_get_selection`| Return what the user has selected in Studio                                  |
+| `roblox_get_properties`| Read properties of an Instance (curated or specific list)                   |
+| `roblox_read_script`  | Read the `Source` of a Script / LocalScript / ModuleScript                   |
 
-You don't pick these — Claude does, based on what you ask.
+### Execute
+| Tool                  | What it does                                                                 |
+| --------------------- | ---------------------------------------------------------------------------- |
+| `roblox_run_code`     | Execute Luau in Studio and capture Output + return value                     |
+
+### Write
+| Tool                    | What it does                                                                |
+| ----------------------- | --------------------------------------------------------------------------- |
+| `roblox_edit_script`    | Replace the `Source` of a Script / LocalScript / ModuleScript               |
+| `roblox_create_instance`| Create any Instance (Part, Folder, RemoteEvent, Sound, ...) with properties |
+| `roblox_make_gui`       | Build a GUI tree under e.g. StarterGui                                      |
+| `roblox_set_properties` | Apply property bag to an existing Instance                                  |
+| `roblox_select`         | Select Instance(s) in Studio (visual confirmation)                          |
+| `roblox_delete`         | Destroy Instance(s) at the given paths                                      |
+| `roblox_undo`           | Undo recent bridge-recorded changes via ChangeHistoryService                |
+
+All write operations record into `ChangeHistoryService`, so the user can Ctrl+Z them like any other Studio change. You don't pick these — Claude does, based on what you ask.
 
 ---
 

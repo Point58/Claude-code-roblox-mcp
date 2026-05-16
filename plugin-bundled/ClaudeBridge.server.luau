@@ -5,6 +5,7 @@
 local HttpService = game:GetService("HttpService")
 local LogService = game:GetService("LogService")
 local ChangeHistoryService = game:GetService("ChangeHistoryService")
+local Selection = game:GetService("Selection")
 
 local DEFAULT_URL = "http://127.0.0.1:31416"
 local SETTING_URL = "ClaudeRobloxBridge_Url"
@@ -78,6 +79,24 @@ function PropertyDecode.decode(value: any): any
 		return Vector2.new(value.x or 0, value.y or 0)
 	elseif kind == "Vector3" then
 		return Vector3.new(value.x or 0, value.y or 0, value.z or 0)
+	elseif kind == "CFrame" then
+		local x, y, z = value.x or 0, value.y or 0, value.z or 0
+		if typeof(value.angles) == "table" then
+			return CFrame.new(x, y, z) * CFrame.Angles(math.rad(value.angles.x or 0), math.rad(value.angles.y or 0), math.rad(value.angles.z or 0))
+		end
+		if typeof(value.lookAt) == "table" then
+			return CFrame.lookAt(Vector3.new(x, y, z), Vector3.new(value.lookAt.x or 0, value.lookAt.y or 0, value.lookAt.z or 0))
+		end
+		return CFrame.new(x, y, z)
+	elseif kind == "NumberRange" then
+		local mn = value.min or 0
+		return NumberRange.new(mn, value.max or mn)
+	elseif kind == "BrickColor" then
+		if value.name then return BrickColor.new(value.name) end
+		if value.number then return BrickColor.new(value.number) end
+		return BrickColor.new(1, 1, 1)
+	elseif kind == "Rect" then
+		return Rect.new(value.minX or 0, value.minY or 0, value.maxX or 0, value.maxY or 0)
 	elseif kind == "Enum" then
 		local enumType = (Enum :: any)[value.enumType]
 		if enumType then return enumType[value.name] end
@@ -92,13 +111,17 @@ end
 local Handlers = {}
 
 local INTERESTING_PROPS: { [string]: { string } } = {
-	BasePart = { "Position", "Size", "Anchored", "Material" },
-	Frame = { "Size", "Position", "BackgroundColor3", "BorderSizePixel" },
-	TextLabel = { "Text", "TextColor3", "TextSize", "Font" },
-	ImageLabel = { "Image", "ImageColor3" },
+	BasePart = { "Position", "Size", "Anchored", "Material", "CFrame", "Color", "Transparency", "CanCollide" },
+	Frame = { "Size", "Position", "BackgroundColor3", "BorderSizePixel", "Visible" },
+	TextLabel = { "Text", "TextColor3", "TextSize", "Font", "Visible" },
+	TextButton = { "Text", "TextColor3", "TextSize", "Font", "Visible" },
+	ImageLabel = { "Image", "ImageColor3", "Visible" },
+	ScreenGui = { "Enabled", "ResetOnSpawn", "IgnoreGuiInset" },
 	Script = { "Disabled", "RunContext" },
 	LocalScript = { "Disabled" },
 	ModuleScript = {},
+	Sound = { "SoundId", "Volume", "Playing", "Looped" },
+	Folder = {},
 }
 
 local function gatherProps(inst: Instance): { [string]: any }
@@ -114,6 +137,19 @@ local function gatherProps(inst: Instance): { [string]: any }
 		end
 	end
 	return out
+end
+
+local function applyProperties(inst: Instance, props: any): ({ string }, { [string]: string })
+	local applied: { string } = {}
+	local failed: { [string]: string } = {}
+	if typeof(props) ~= "table" then return applied, failed end
+	for key, raw in pairs(props) do
+		local value = PropertyDecode.decode(raw)
+		local ok, err = pcall(function() (inst :: any)[key] = value end)
+		if ok then table.insert(applied, key)
+		else failed[key] = tostring(err) end
+	end
+	return applied, failed
 end
 
 local function walk(inst: Instance, depth: number, maxDepth: number, includeProps: boolean): any
@@ -234,6 +270,153 @@ function Handlers.make_gui(args: any): any
 	root.Parent = parent
 	if recording then ChangeHistoryService:FinishRecording(recording, Enum.FinishRecordingOperation.Commit) end
 	return { path = root:GetFullName(), className = root.ClassName }
+end
+
+function Handlers.read_script(args: any): any
+	local path = args.path
+	if typeof(path) ~= "string" then error("path is required") end
+	local target = PathUtil.resolve(path)
+	if not target then error(("script not found: %s"):format(path)) end
+	if not target:IsA("LuaSourceContainer") then
+		error(("target is not a script: %s (%s)"):format(path, target.ClassName))
+	end
+	local source = (target :: any).Source
+	return { path = target:GetFullName(), className = target.ClassName, source = source, bytes = #source }
+end
+
+function Handlers.create_instance(args: any): any
+	local className = args.className
+	local parentPath = args.parent
+	if typeof(className) ~= "string" then error("className is required") end
+	if typeof(parentPath) ~= "string" then error("parent is required") end
+	local parent = PathUtil.resolve(parentPath)
+	if not parent then error(("parent not found: %s"):format(parentPath)) end
+	local recording = ChangeHistoryService:TryBeginRecording("ClaudeBridge_CreateInstance")
+	if args.replaceExisting and typeof(args.name) == "string" then
+		local existing = parent:FindFirstChild(args.name)
+		if existing then existing:Destroy() end
+	end
+	local ok, instOrErr = pcall(Instance.new, className)
+	if not ok then
+		if recording then ChangeHistoryService:FinishRecording(recording, Enum.FinishRecordingOperation.Cancel) end
+		error(("cannot create %s: %s"):format(className, tostring(instOrErr)))
+	end
+	local inst = instOrErr :: Instance
+	if typeof(args.name) == "string" then inst.Name = args.name end
+	local applied, failed = applyProperties(inst, args.properties)
+	inst.Parent = parent
+	if recording then ChangeHistoryService:FinishRecording(recording, Enum.FinishRecordingOperation.Commit) end
+	return { path = inst:GetFullName(), className = inst.ClassName, name = inst.Name, applied = applied, failed = failed }
+end
+
+function Handlers.set_properties(args: any): any
+	local target = PathUtil.resolve(args.path or "")
+	if not target then error(("not found: %s"):format(tostring(args.path))) end
+	if typeof(args.properties) ~= "table" then error("properties table is required") end
+	local recording = ChangeHistoryService:TryBeginRecording("ClaudeBridge_SetProperties")
+	local applied, failed = applyProperties(target, args.properties)
+	if recording then ChangeHistoryService:FinishRecording(recording, Enum.FinishRecordingOperation.Commit) end
+	return { path = target:GetFullName(), applied = applied, failed = failed }
+end
+
+function Handlers.get_properties(args: any): any
+	local target = PathUtil.resolve(args.path or "")
+	if not target then error(("not found: %s"):format(tostring(args.path))) end
+	local out: { [string]: any } = {}
+	if typeof(args.properties) == "table" and #args.properties > 0 then
+		for _, key in args.properties do
+			local ok, v = pcall(function() return (target :: any)[key] end)
+			if ok then out[key] = tostring(v) end
+		end
+	else
+		out = gatherProps(target)
+	end
+	return { path = target:GetFullName(), properties = out }
+end
+
+function Handlers.delete(args: any): any
+	local paths: { string }
+	if typeof(args.path) == "string" then paths = { args.path }
+	elseif typeof(args.path) == "table" then paths = args.path
+	else error("path must be a string or array of strings") end
+	local recording = ChangeHistoryService:TryBeginRecording("ClaudeBridge_Delete")
+	local deleted: { string } = {}
+	local notFound: { string } = {}
+	for _, p in paths do
+		local target = PathUtil.resolve(p)
+		if target and target ~= game then
+			table.insert(deleted, target:GetFullName())
+			target:Destroy()
+		else
+			table.insert(notFound, p)
+		end
+	end
+	if recording then ChangeHistoryService:FinishRecording(recording, Enum.FinishRecordingOperation.Commit) end
+	return { deleted = deleted, notFound = notFound }
+end
+
+function Handlers.search(args: any): any
+	local root = PathUtil.resolve(args.root or "game")
+	if not root then error(("root not found: %s"):format(tostring(args.root))) end
+	local maxResults = args.maxResults or 100
+	local maxDepth = args.maxDepth or 10
+	local namePat: string? = if typeof(args.namePattern) == "string" then args.namePattern else nil
+	local className: string? = if typeof(args.className) == "string" then args.className else nil
+	local out: { any } = {}
+	local function recurse(inst: Instance, depth: number)
+		if #out >= maxResults then return end
+		if depth > 0 then
+			local nameOk = (not namePat) or (string.find(inst.Name, namePat :: string) ~= nil)
+			local classOk = (not className) or inst:IsA(className :: string) or inst.ClassName == className
+			if nameOk and classOk then
+				table.insert(out, { name = inst.Name, className = inst.ClassName, path = inst:GetFullName() })
+			end
+		end
+		if depth >= maxDepth then return end
+		for _, child in inst:GetChildren() do
+			recurse(child, depth + 1)
+			if #out >= maxResults then return end
+		end
+	end
+	recurse(root, 0)
+	return { count = #out, truncated = #out >= maxResults, results = out }
+end
+
+function Handlers.get_selection(args: any): any
+	local includeProps = args.includeProperties == true
+	local sel = Selection:Get()
+	local items: { any } = {}
+	for _, inst in sel do
+		local node: any = { name = inst.Name, className = inst.ClassName, path = inst:GetFullName() }
+		if includeProps then node.properties = gatherProps(inst) end
+		table.insert(items, node)
+	end
+	return { count = #items, items = items }
+end
+
+function Handlers.select(args: any): any
+	if typeof(args.paths) ~= "table" then error("paths array is required") end
+	local items: { Instance } = {}
+	local notFound: { string } = {}
+	for _, p in args.paths do
+		local inst = PathUtil.resolve(p)
+		if inst then table.insert(items, inst) else table.insert(notFound, p) end
+	end
+	if args.add then
+		for _, i in Selection:Get() do table.insert(items, i) end
+	end
+	Selection:Set(items)
+	return { selected = #items, notFound = notFound }
+end
+
+function Handlers.undo(args: any): any
+	local count = math.max(1, math.min(args.count or 1, 50))
+	local undone = 0
+	for _ = 1, count do
+		local ok = pcall(function() ChangeHistoryService:Undo() end)
+		if ok then undone = undone + 1 else break end
+	end
+	return { undone = undone, requested = count }
 end
 
 -- =========================================================================
